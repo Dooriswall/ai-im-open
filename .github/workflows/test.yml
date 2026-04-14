@@ -22,28 +22,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Remove lock file
-        run: rm -f package-lock.json
+          cache: 'npm'
+          cache-dependency-path: './server/package-lock.json'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run unit tests
         run: npm test -- --testPathPattern="config.test.js"
 
       - name: Start server and run integration tests
         run: |
-          # Clean up any existing database
           rm -f *.db
-          # Create test .env
           cp .env.example .env
-          # Start server in background
           node index.js &
           SERVER_PID=$!
-          # Wait for server to start
           sleep 3
-          # Run only regression tests
           npm test -- --testPathPattern="regression.test.js" || true
-          # Kill server
           kill $SERVER_PID || true
