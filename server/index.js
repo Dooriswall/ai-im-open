@@ -367,7 +367,7 @@ function handleWsMessage(ws, userId, msg) {
         broadcast(outMsg);
       }
       
-      dispatchWebhooks(outMsg, channel);
+      dispatchWebhooks(outMsg, channel, ws.userId);
       break;
     }
 
@@ -427,7 +427,7 @@ function handleWsMessage(ws, userId, msg) {
       const conversation = db.createDM(participants[0], participants[1]);
       if (conversation?.id) db.updateDMTime(conversation.id);
       sendToUsers(participants, outMsg, ws);
-      dispatchWebhooks(outMsg, channel);
+      dispatchWebhooks(outMsg, channel, ws.userId);
       break;
     }
   }
@@ -435,14 +435,14 @@ function handleWsMessage(ws, userId, msg) {
 
 // ========== Webhook推送 ==========
 
-async function dispatchWebhooks(chatMsg, channel) {
+async function dispatchWebhooks(chatMsg, channel, senderId) {
   const sender = chatMsg.data.sender;
   
   // 确定需要发送webhook的用户列表
   let targetUsers = Object.keys(config.webhooks);
   
   // 如果是私聊消息，只发送给私聊对方
-  if (channel && isValidDmChannel(channel, ws.userId)) {
+  if (channel && senderId && isValidDmChannel(channel, senderId)) {
     const parts = channel.split(':');
     if (parts.length >= 3) {
       const user1 = parts[1];
