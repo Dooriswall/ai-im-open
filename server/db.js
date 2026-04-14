@@ -451,10 +451,10 @@ module.exports = {
     const safeLimit = limit || 50;
     let sql, params;
     if (channel) {
-      sql = 'SELECT * FROM messages WHERE channel = ? AND content LIKE ? ESCAPE '\\' ORDER BY id DESC LIMIT ?';
+      sql = 'SELECT * FROM messages WHERE channel = ? AND content LIKE ? ORDER BY id DESC LIMIT ?';
       params = [channel, '%' + escapeLike(query) + '%', safeLimit];
     } else {
-      sql = 'SELECT * FROM messages WHERE content LIKE ? ESCAPE '\\' ORDER BY id DESC LIMIT ?';
+      sql = 'SELECT * FROM messages WHERE content LIKE ? ORDER BY id DESC LIMIT ?';
       params = ['%' + escapeLike(query) + '%', safeLimit];
     }
     const stmt = db.prepare(sql);
