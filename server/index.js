@@ -213,6 +213,15 @@ function isValidDmChannel(channelName, userId) {
   return user1 < user2;
 }
 
+// Get authenticated user from HTTP request
+function getUserIdFromRequest(req) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return null;
+  const token = authHeader.replace('Bearer ', '');
+  const user = db.getUserByToken(token);
+  return user ? user.username : null;
+}
+
 // 发送消息给指定用户列表
 function sendToUsers(userIds, msg, excludeWs = null) {
   const data = JSON.stringify(msg);
@@ -510,7 +519,7 @@ app.post('/api/messages', authMiddleware, (req, res) => {
   if (content.length > config.maxMessageLength) return res.status(400).json({ error: 'Message too long' });
   
   // 权限校验：私聊频道只能由参与者发送
-  if (isValidDmChannel(channel, ws.userId)) {
+  if (isValidDmChannel(channel, getUserIdFromRequest(req))) {
     const parts = channel.split(':');
     if (parts.length < 3 || (parts[1] !== req.userId && parts[2] !== req.userId)) {
       return res.status(403).json({ error: 'Access denied to this DM channel' });
@@ -523,7 +532,7 @@ app.post('/api/messages', authMiddleware, (req, res) => {
     sender: req.userId,
     channel,
     content: content.trim(),
-    type: msgType || 'text',
+    type: VALID_MESSAGE_TYPES.includes(msg.messageType) ? msg.messageType : 'text',
   });
 
   const outMsg = {
@@ -535,7 +544,7 @@ app.post('/api/messages', authMiddleware, (req, res) => {
       senderInfo: req.userInfo,
       channel,
       content: content.trim(),
-      type: msgType || 'text',
+      type: VALID_MESSAGE_TYPES.includes(msg.messageType) ? msg.messageType : 'text',
       created_at: new Date().toISOString(),
     }
   };
@@ -550,7 +559,7 @@ app.get('/api/messages', authMiddleware, (req, res) => {
   let channel = req.query.channel || 'general';
   
   // 权限校验：私聊频道只能由参与者访问
-  if (isValidDmChannel(channel, ws.userId)) {
+  if (isValidDmChannel(channel, getUserIdFromRequest(req))) {
     const parts = channel.split(':');
     if (parts.length < 3 || (parts[1] !== req.userId && parts[2] !== req.userId)) {
       return res.status(403).json({ error: 'Access denied to this DM channel' });
@@ -566,7 +575,7 @@ app.get('/api/messages/since/:lastId', authMiddleware, (req, res) => {
   let channel = req.query.channel || 'general';
   
   // 权限校验：私聊频道只能由参与者访问
-  if (isValidDmChannel(channel, ws.userId)) {
+  if (isValidDmChannel(channel, getUserIdFromRequest(req))) {
     const parts = channel.split(':');
     if (parts.length < 3 || (parts[1] !== req.userId && parts[2] !== req.userId)) {
       return res.status(403).json({ error: 'Access denied to this DM channel' });
