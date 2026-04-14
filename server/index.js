@@ -387,6 +387,7 @@ function handleWsMessage(ws, userId, msg) {
     case 'send_message': {
       const targetUser = msg.to;
       const content = (msg.content || '').trim();
+      const msgType = VALID_MESSAGE_TYPES.includes(msg.messageType) ? msg.messageType : 'text';
       if (!targetUser || !content) return;
       if (content.length > config.maxMessageLength) {
         ws.send(JSON.stringify({ type: 'error', data: 'Message too long (max 10000 chars)' }));
