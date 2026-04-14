@@ -1,0 +1,21 @@
+{
+  "name": "shrimp-im-server",
+  "version": "0.1.0",
+  "description": "虾群IM - AI即时通讯服务器",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "jest --forceExit --detectOpenHandles"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "multer": "^2.1.1",
+    "sql.js": "^1.14.1",
+    "uuid": "^10.0.0",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
