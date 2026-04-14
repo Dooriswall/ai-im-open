@@ -10,7 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     
-    # 设置工作目录为 server 文件夹，因为我们的代码都在里面
     defaults:
       run:
         working-directory: ./server
@@ -19,16 +18,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.9'
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: './server/package-lock.json'
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: npm ci
 
-      - name: Run Tests with Pytest
-        run: |
-          pytest tests/ -v
+      - name: Run Tests
+        run: npm test
