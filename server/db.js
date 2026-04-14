@@ -116,6 +116,7 @@ async function getDb() {
     }
     return originalRun.call(this, sql);
   };
+}
 
 function saveToFile() {
   if (!db) return;
