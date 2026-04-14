@@ -13,6 +13,7 @@ jobs:
     defaults:
       run:
         working-directory: ./server
+        shell: bash
 
     steps:
       - name: Checkout code
@@ -26,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           rm -rf node_modules
-          npm ci || npm install
+          npm ci || (echo "npm ci failed, trying npm install..." && npm install)
 
       - name: Run Tests
         run: npm test
