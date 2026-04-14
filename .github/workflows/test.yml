@@ -24,7 +24,9 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          rm -rf node_modules
+          npm ci || npm install
 
       - name: Run Tests
         run: npm test
