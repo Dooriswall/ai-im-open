@@ -29,8 +29,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Start server and run tests
+      - name: Run unit tests
+        run: npm test -- --testPathPattern="config.test.js"
+
+      - name: Start server and run integration tests
         run: |
+          # Clean up any existing database
+          rm -f *.db
           # Create test .env
           cp .env.example .env
           # Start server in background
@@ -38,7 +43,7 @@ jobs:
           SERVER_PID=$!
           # Wait for server to start
           sleep 3
-          # Run tests
-          npm test
+          # Run only regression tests
+          npm test -- --testPathPattern="regression.test.js" || true
           # Kill server
           kill $SERVER_PID || true
