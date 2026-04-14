@@ -31,6 +31,10 @@ module.exports = {
     'tiaocizhe': { name: '挑剔者', role: 'ai', engine: 'MiniMax M2.7', location: '老板办公室' },
   },
 
+  // Webhook配置
+  webhookTimeout: parseInt(process.env.WEBHOOK_TIMEOUT) || 5000,
+  webhookRetries: parseInt(process.env.WEBHOOK_RETRIES) || 2,
+
   // 消息历史加载条数
   historyLimit: 5000,
 
