@@ -17,8 +17,10 @@ const httpServer = http.createServer(app);
 // HTTPS server
 let httpsServer = null;
 try {
-  const sslCert = fs.readFileSync('/etc/letsencrypt/live/im.essatheteng.com/fullchain.pem');
-  const sslKey = fs.readFileSync('/etc/letsencrypt/live/im.essatheteng.com/privkey.pem');
+  const sslCertPath = config.sslCertPath || '/etc/letsencrypt/live/im.essatheteng.com/fullchain.pem';
+  const sslKeyPath = config.sslKeyPath || '/etc/letsencrypt/live/im.essatheteng.com/privkey.pem';
+  const sslCert = fs.readFileSync(sslCertPath);
+  const sslKey = fs.readFileSync(sslKeyPath);
   httpsServer = https.createServer({ cert: sslCert, key: sslKey }, app);
   console.log('SSL certificates loaded');
 } catch (e) {
@@ -249,7 +251,7 @@ function handleWsMessage(ws, userId, msg) {
       const content = (msg.content || '').trim();
       const msgType = msg.messageType || 'text';
       if (!content && msgType === 'text') return;  // 允许文件/语音消息content为空
-      if (content.length > 10000) {
+      if (content.length > config.maxMessageLength) {
         ws.send(JSON.stringify({ type: 'error', data: 'Message too long (max 10000 chars)' }));
         return;
       }
@@ -333,7 +335,7 @@ function handleWsMessage(ws, userId, msg) {
       const targetUser = msg.to;
       const content = (msg.content || '').trim();
       if (!targetUser || !content) return;
-      if (content.length > 10000) {
+      if (content.length > config.maxMessageLength) {
         ws.send(JSON.stringify({ type: 'error', data: 'Message too long (max 10000 chars)' }));
         return;
       }
@@ -461,7 +463,7 @@ setInterval(() => {
 app.post('/api/messages', authMiddleware, (req, res) => {
   const { content, channel = 'general' } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: 'Content required' });
-  if (content.length > 10000) return res.status(400).json({ error: 'Message too long' });
+  if (content.length > config.maxMessageLength) return res.status(400).json({ error: 'Message too long' });
   
   // 权限校验：私聊频道只能由参与者发送
   if (channel.startsWith('dm:')) {

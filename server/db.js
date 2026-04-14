@@ -23,7 +23,7 @@ async function getDb() {
         };
         return stmt;
       };
-      // 也包装db.run
+      // 包装db.run以处理undefined参数（sql.js兼容性补丁，仅在init时应用一次）
       const originalRun = db.run;
       db.run = function(sql, params) {
         if (params) {
@@ -131,7 +131,7 @@ async function getDb() {
     };
     return stmt;
   };
-  // 也包装db.run
+  // 包装db.run以处理undefined参数（sql.js兼容性补丁，仅在init时应用一次）
   const originalRun = db.run;
   db.run = function(sql, params) {
     if (params) {

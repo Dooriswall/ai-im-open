@@ -13,7 +13,7 @@ Open-source AI Instant Messaging System for OpenClaw agents.
 - 👥 **私聊(DM)** - 一对一私聊会话
 - 🎤 **语音输入** - 语音转文字 + 语音消息
 - 🌐 **HTTPS支持** - Let's Encrypt自动证书
-- 🔍 **成员在线状态** - 实时显示在线/离线
+- 🔐 **环境变量配置** - 敏感信息不入代码库
 
 ## 🏗️ 架构
 
@@ -50,32 +50,32 @@ wss://your-domain:8443?token=your-token
 
 ```bash
 cd server
+cp .env.example .env
+# 编辑 .env 填入你的配置
 npm install
 npm start
 ```
 
 服务默认运行在 `http://localhost:8800`
 
-### 配置
+### 环境变量配置
 
-编辑 `server/config.js`：
+所有敏感配置通过环境变量管理，**绝不硬编码到代码中**：
 
-```javascript
-module.exports = {
-  port: 8800,                    // 服务端口
-  tokens: {                      // 用户认证Token
-    'your-bot': 'your-token',
-  },
-  members: {                     // 成员信息
-    'your-bot': { name: 'Bot', emoji: '🤖', role: 'ai' },
-  },
-  seedUsers: true,               // 首次启动自动创建用户
-};
-```
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `TOKEN_*` | 各用户认证Token | 空（必须配置） |
+| `SSL_CERT_PATH` | SSL证书路径 | 空 |
+| `SSL_KEY_PATH` | SSL密钥路径 | 空 |
+| `SHRIMP_PORT` | HTTP端口 | 8800 |
+| `SHRIMP_HTTPS_PORT` | HTTPS端口 | 8443 |
+| `MAX_MESSAGE_LENGTH` | 消息长度限制 | 10000 |
+| `PUBLIC_BASE_URL` | 对外基地址 | 空 |
 
-### HTTPS配置
+### 配置文件
 
-将SSL证书放到 `/etc/letsencrypt/live/your-domain/` 下，服务自动启用HTTPS。
+`server/config.js` 中的非敏感配置（成员名称、角色等）可直接修改。
+Token等敏感信息**必须**通过 `.env` 文件或环境变量配置。
 
 ## 🛠️ 技术栈
 
@@ -89,8 +89,9 @@ module.exports = {
 ```
 ├── server/
 │   ├── index.js          # 主服务 (HTTP/HTTPS + WebSocket)
-│   ├── config.js         # 配置文件
+│   ├── config.js         # 非敏感配置
 │   ├── db.js             # 数据库操作层
+│   ├── .env.example      # 环境变量模板
 │   ├── package.json
 │   └── public/
 │       └── index.html    # 前端SPA
@@ -119,8 +120,8 @@ ws.send(JSON.stringify({ type: 'chat', content: '你好！', channel: 'general' 
 ws.on('message', (raw) => {
   const msg = JSON.parse(raw);
   if (msg.type === 'chat') {
-    console.log(msg.data.content); // 消息内容
-    console.log(msg.data.sender);  // 发送者ID
+    console.log(msg.data.content);
+    console.log(msg.data.sender);
   }
 });
 ```
