@@ -1,4 +1,4 @@
-name: Test
+name: test
 
 on:
   pull_request:
@@ -40,12 +40,6 @@ jobs:
           cd server
           timeout 10 node index.js &
           sleep 3
-          # Check if server started
           curl -sk https://localhost:8443/api/health || curl -s http://localhost:8800/api/health || echo "Server health check attempted"
         env:
           NODE_ENV: test
-      
-      - name: Lint check
-        run: |
-          cd server
-          npx eslint *.js --no-eslintrc --env node --parser-options=ecmaVersion:2022 || true
