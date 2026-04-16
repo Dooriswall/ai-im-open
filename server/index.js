@@ -8,35 +8,8 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const config = require('./config');
 const db = require('./db');
-
-const VALID_MESSAGE_TYPES = ['text', 'file', 'voice'];
-
-
-// Rate limiting for health endpoint
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 60 seconds
-const RATE_LIMIT_MAX = 30;
-
-function checkRateLimit(ip) {
-  const now = Date.now();
-  let entry = rateLimitMap.get(ip);
-  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW) {
-    entry = { count: 1, windowStart: now };
-    rateLimitMap.set(ip, entry);
-    return true;
-  }
-  entry.count++;
-  if (entry.count > RATE_LIMIT_MAX) return false;
-  return true;
-}
-
-// Clean up old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateLimitMap) {
-    if (now - entry.windowStart > RATE_LIMIT_WINDOW * 2) rateLimitMap.delete(ip);
-  }
-}, 300000);
+const fileSystem = require('./filesystem');
+const fileRoutes = require('./fileRoutes');
 
 const app = express();
 
@@ -46,10 +19,8 @@ const httpServer = http.createServer(app);
 // HTTPS server
 let httpsServer = null;
 try {
-  const sslCertPath = config.sslCertPath || '/etc/letsencrypt/live/im.essatheteng.com/fullchain.pem';
-  const sslKeyPath = config.sslKeyPath || '/etc/letsencrypt/live/im.essatheteng.com/privkey.pem';
-  const sslCert = fs.readFileSync(sslCertPath);
-  const sslKey = fs.readFileSync(sslKeyPath);
+  const sslCert = fs.readFileSync('/etc/letsencrypt/live/im.essatheteng.com/fullchain.pem');
+  const sslKey = fs.readFileSync('/etc/letsencrypt/live/im.essatheteng.com/privkey.pem');
   httpsServer = https.createServer({ cert: sslCert, key: sslKey }, app);
   console.log('SSL certificates loaded');
 } catch (e) {
@@ -90,7 +61,7 @@ app.use((req, res, next) => {
 });
 
 // 初始化数据库
-db.init().then(() => {
+db.init().then((dbInstance) => {
   console.log('📦 Database initialized');
   
   // 导入种子用户（如果配置了且用户表为空）
@@ -103,6 +74,14 @@ db.init().then(() => {
     }
   }
   
+  // ========== File System API ==========
+  app.locals.wss = wss;
+  app.locals.config = config;
+  fileSystem.ensureWorkspaceDir();
+  fileSystem.initDatabase(dbInstance);
+  app.locals.db = dbInstance;
+  app.use('/api/files', authMiddleware, fileRoutes);
+
   // 数据库就绪后启动服务器
   startServers();
 }).catch(err => {
@@ -198,30 +177,6 @@ function broadcast(msg, excludeWs = null) {
   });
 }
 
-
-function isValidDmChannel(channelName, userId) {
-  if (!channelName || !channelName.startsWith('dm:')) return false;
-  const parts = channelName.slice(3).split('_');
-  if (parts.length !== 2) return false;
-  const [user1, user2] = parts;
-  // Verify both users exist
-  const allUsernames = Object.keys(config.members || {}).concat(Object.keys(config.tokens || {}));
-  if (!allUsernames.includes(user1) || !allUsernames.includes(user2)) return false;
-  // Verify current user is a participant
-  if (userId !== user1 && userId !== user2) return false;
-  // Enforce alphabetical order
-  return user1 < user2;
-}
-
-// Get authenticated user from HTTP request
-function getUserIdFromRequest(req) {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) return null;
-  const token = authHeader.replace('Bearer ', '');
-  const user = db.getUserByToken(token);
-  return user ? user.username : null;
-}
-
 // 发送消息给指定用户列表
 function sendToUsers(userIds, msg, excludeWs = null) {
   const data = JSON.stringify(msg);
@@ -302,15 +257,15 @@ function handleWsMessage(ws, userId, msg) {
       const uid = uuidv4();
       const channel = msg.channel || 'general';
       const content = (msg.content || '').trim();
-      const msgType = VALID_MESSAGE_TYPES.includes(msg.messageType) ? msg.messageType : 'text';
+      const msgType = msg.messageType || 'text';
       if (!content && msgType === 'text') return;  // 允许文件/语音消息content为空
-      if (content.length > config.maxMessageLength) {
+      if (content.length > 10000) {
         ws.send(JSON.stringify({ type: 'error', data: 'Message too long (max 10000 chars)' }));
         return;
       }
 
       // 权限校验：私聊频道只能由参与者发送
-      if (isValidDmChannel(channel, ws.userId)) {
+      if (channel.startsWith('dm:')) {
         const parts = channel.split(':');
         if (parts.length < 3 || (parts[1] !== userId && parts[2] !== userId)) {
           ws.send(JSON.stringify({ type: 'error', data: 'Access denied to this DM channel' }));
@@ -343,7 +298,7 @@ function handleWsMessage(ws, userId, msg) {
       };
 
       // 私聊消息处理
-      if (isValidDmChannel(channel, ws.userId)) {
+      if (channel.startsWith('dm:')) {
         // 解析私聊参与者
         const parts = channel.split(':');
         if (parts.length >= 3) {
@@ -367,7 +322,7 @@ function handleWsMessage(ws, userId, msg) {
         broadcast(outMsg);
       }
       
-      dispatchWebhooks(outMsg, channel, ws.userId);
+      dispatchWebhooks(outMsg, channel);
       break;
     }
 
@@ -387,9 +342,8 @@ function handleWsMessage(ws, userId, msg) {
     case 'send_message': {
       const targetUser = msg.to;
       const content = (msg.content || '').trim();
-      const msgType = VALID_MESSAGE_TYPES.includes(msg.messageType) ? msg.messageType : 'text';
       if (!targetUser || !content) return;
-      if (content.length > config.maxMessageLength) {
+      if (content.length > 10000) {
         ws.send(JSON.stringify({ type: 'error', data: 'Message too long (max 10000 chars)' }));
         return;
       }
@@ -428,7 +382,7 @@ function handleWsMessage(ws, userId, msg) {
       const conversation = db.createDM(participants[0], participants[1]);
       if (conversation?.id) db.updateDMTime(conversation.id);
       sendToUsers(participants, outMsg, ws);
-      dispatchWebhooks(outMsg, channel, ws.userId);
+      dispatchWebhooks(outMsg, channel);
       break;
     }
   }
@@ -436,14 +390,14 @@ function handleWsMessage(ws, userId, msg) {
 
 // ========== Webhook推送 ==========
 
-async function dispatchWebhooks(chatMsg, channel, senderId) {
+async function dispatchWebhooks(chatMsg, channel) {
   const sender = chatMsg.data.sender;
   
   // 确定需要发送webhook的用户列表
   let targetUsers = Object.keys(config.webhooks);
   
   // 如果是私聊消息，只发送给私聊对方
-  if (channel && senderId && isValidDmChannel(channel, senderId)) {
+  if (channel && channel.startsWith('dm:')) {
     const parts = channel.split(':');
     if (parts.length >= 3) {
       const user1 = parts[1];
@@ -517,10 +471,10 @@ setInterval(() => {
 app.post('/api/messages', authMiddleware, (req, res) => {
   const { content, channel = 'general' } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: 'Content required' });
-  if (content.length > config.maxMessageLength) return res.status(400).json({ error: 'Message too long' });
+  if (content.length > 10000) return res.status(400).json({ error: 'Message too long' });
   
   // 权限校验：私聊频道只能由参与者发送
-  if (isValidDmChannel(channel, getUserIdFromRequest(req))) {
+  if (channel.startsWith('dm:')) {
     const parts = channel.split(':');
     if (parts.length < 3 || (parts[1] !== req.userId && parts[2] !== req.userId)) {
       return res.status(403).json({ error: 'Access denied to this DM channel' });
@@ -533,7 +487,7 @@ app.post('/api/messages', authMiddleware, (req, res) => {
     sender: req.userId,
     channel,
     content: content.trim(),
-    type: VALID_MESSAGE_TYPES.includes(msg.messageType) ? msg.messageType : 'text',
+    type: 'text',
   });
 
   const outMsg = {
@@ -545,7 +499,7 @@ app.post('/api/messages', authMiddleware, (req, res) => {
       senderInfo: req.userInfo,
       channel,
       content: content.trim(),
-      type: VALID_MESSAGE_TYPES.includes(msg.messageType) ? msg.messageType : 'text',
+      type: 'text',
       created_at: new Date().toISOString(),
     }
   };
@@ -560,7 +514,7 @@ app.get('/api/messages', authMiddleware, (req, res) => {
   let channel = req.query.channel || 'general';
   
   // 权限校验：私聊频道只能由参与者访问
-  if (isValidDmChannel(channel, getUserIdFromRequest(req))) {
+  if (channel.startsWith('dm:')) {
     const parts = channel.split(':');
     if (parts.length < 3 || (parts[1] !== req.userId && parts[2] !== req.userId)) {
       return res.status(403).json({ error: 'Access denied to this DM channel' });
@@ -576,7 +530,7 @@ app.get('/api/messages/since/:lastId', authMiddleware, (req, res) => {
   let channel = req.query.channel || 'general';
   
   // 权限校验：私聊频道只能由参与者访问
-  if (isValidDmChannel(channel, getUserIdFromRequest(req))) {
+  if (channel.startsWith('dm:')) {
     const parts = channel.split(':');
     if (parts.length < 3 || (parts[1] !== req.userId && parts[2] !== req.userId)) {
       return res.status(403).json({ error: 'Access denied to this DM channel' });
@@ -849,6 +803,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // 启动服务器函数
+
 function startServers() {
   // HTTP -> HTTPS redirect
   httpServer.listen(config.port, '0.0.0.0', () => {

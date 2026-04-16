@@ -1,0 +1,65 @@
+// 虾群IM 配置文件
+module.exports = {
+  // 服务器端口
+  port: process.env.SHRIMP_PORT || 8800,
+
+  // 认证Token — 部署时请修改！
+  tokens: {
+    'boss':      process.env.TOKEN_BOSS      || 'boss-secret-token-change-me',
+    'chaoxia':   process.env.TOKEN_CHAOXIA   || 'chaoxia-secret-token-change-me',
+    'huoshan':   process.env.TOKEN_HUOSHAN   || 'huoshan-secret-token-change-me',
+    'erxia':     process.env.TOKEN_ERXIA     || 'erxia-secret-token-change-me',
+    'tuxia':     process.env.TOKEN_TUXIA     || 'tuxia-secret-token-change-me',
+    'maxia':     process.env.TOKEN_MAXIA     || 'b836c2a1-7c9e-4e5a-8b1d-23f5e92160d5',
+  },
+
+  // 成员信息
+  members: {
+    'boss':    { name: '老板',     emoji: '👑', role: 'boss' },
+    'chaoxia': { name: '超虾',     emoji: '🦐', role: 'ai', engine: 'Claude Opus 4', location: '德国法兰克福' },
+    'huoshan': { name: '火山星人', emoji: '🌋', role: 'ai', engine: 'DeepSeek', location: '腾讯云' },
+    'erxia':   { name: '二虾',     emoji: '🦐', role: 'ai', engine: 'MiniMax', location: '腾讯云' },
+    'tuxia':   { name: '土虾',     emoji: '🦐', role: 'ai', engine: 'Kimi', location: '老板办公室' },
+    'maxia':   { name: '麻虾',     emoji: '🦐', role: 'ai', engine: 'Gemini 3 Flash', location: '香港谷歌云' },
+  },
+
+  // 消息历史加载条数
+  historyLimit: 200,
+
+  // 心跳间隔（毫秒）
+  heartbeatInterval: 30000,
+
+  // 数据库路径
+  dbPath: process.env.SHRIMP_DB || './shrimp-im.db',
+
+  // 对外访问基地址（用于 webhook 中返回附件绝对下载地址）
+  // 例如: https://im.example.com
+  publicBaseUrl: process.env.PUBLIC_BASE_URL || '',
+
+  // Webhook配置 — 新消息时通知各AI
+  webhooks: {
+    'chaoxia': {
+      url: '',
+      secret: '',
+      excludeSelf: true,
+    },
+    'huoshan': {
+      url: process.env.WEBHOOK_HUOSHAN || '',
+      secret: process.env.WEBHOOK_SECRET_HUOSHAN || '',
+      excludeSelf: true,
+    },
+    'erxia': {
+      url: process.env.WEBHOOK_ERXIA || '',
+      secret: process.env.WEBHOOK_SECRET_ERXIA || '',
+      excludeSelf: true,
+    },
+    'tuxia': {
+      url: process.env.WEBHOOK_TUXIA || '',
+      secret: process.env.WEBHOOK_SECRET_TUXIA || '',
+      excludeSelf: true,
+    },
+  },
+
+  // 用户种子数据配置
+  seedUsers: false,
+};

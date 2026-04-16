@@ -785,10 +785,21 @@
       display: inline;
     }
 
+
+  /* Workspace styles */
+  #workspace-container { display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:#1a1a2e; z-index:100; }
+  .workspace-layout { display:flex; height:100%; width:100%; }
+  @media(max-width:768px) { .workspace-layout { flex-direction:column; } .workspace-sidebar { width:100%; height:40%; border-right:none; border-bottom:1px solid #333; } .file-modified { display:none; } }
+  @media(max-width:480px) { .workspace-sidebar { width:100%; height:35%; } .file-size { display:none; } }
+
 </style>
+  <link rel="stylesheet" href="/workspace.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 </head>
 <body>
-
 <!-- Login -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
@@ -861,16 +872,23 @@
 </div>
 
 <!-- App -->
-<div class="header hidden" id="appHeader">
-  <div id="dmHeader" class="hidden" style="display: flex; align-items: center; flex: 1;">
-    <button id="backToGroupBtn" style="background: transparent; border: none; color: var(--text2); cursor: pointer; margin-right: 12px; font-size: 14px;">← 返回群聊</button>
-    <div style="flex: 1;">
-      <div style="font-size: 12px; color: var(--text2);">私聊</div>
-      <div id="dmTargetName" style="font-weight: bold;"></div>
+<div class="header hidden" id="appHeader" style="flex-wrap:wrap;">
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+    <div id="dmHeader" class="hidden" style="display: flex; align-items: center; flex: 1;">
+      <button id="backToGroupBtn" style="background: transparent; border: none; color: var(--text2); cursor: pointer; margin-right: 12px; font-size: 14px;">← 返回群聊</button>
+      <div style="flex: 1;">
+        <div style="font-size: 12px; color: var(--text2);">私聊</div>
+        <div id="dmTargetName" style="font-weight: bold;"></div>
+      </div>
     </div>
+    <h1 id="groupHeader">🦐 虾群IM</h1>
+    <div class="status" id="connStatus">连接中...</div>
   </div>
-  <h1 id="groupHeader">🦐 虾群IM</h1>
-  <div class="status" id="connStatus">连接中...</div>
+  <!-- Tab Bar -->
+  <div class="tab-bar" id="main-tabs" style="display:flex;width:100%;border-top:1px solid #444;margin-top:4px;padding-top:4px;">
+    <div class="tab-item active" data-tab="chat" onclick="switchTab('chat')" style="flex:1;text-align:center;padding:4px 0;cursor:pointer;border-radius:4px;">💬 聊天</div>
+    <div class="tab-item" data-tab="workspace" onclick="switchTab('workspace')" style="flex:1;text-align:center;padding:4px 0;cursor:pointer;border-radius:4px;">📁 工作台</div>
+  </div>
 </div>
 
 <div class="main hidden" id="appMain">
@@ -2287,6 +2305,72 @@ let voiceLongPressTimer = null;
   //       });
   //   });
   // }
+</script>
+
+<!-- Workspace Container -->
+<div id="workspace-container" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:#1a1a2e;z-index:100;"></div>
+
+<!-- Workspace JS -->
+<script src="/workspace.js"></script>
+<script>
+  // Initialize workspace
+  let workspaceManager = null;
+  
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.tab-item[data-tab="${tab}"]`)?.classList.add('active');
+    
+    const appHeader = document.getElementById('appHeader');
+    const appMain = document.getElementById('appMain');
+    const workspacePanel = document.getElementById('workspace-container');
+    
+    if (tab === 'workspace') {
+      // Hide chat, show workspace as fullscreen overlay
+      if (appMain) { appMain.style.display = 'none'; }
+      if (appHeader) { appHeader.style.display = 'none'; }
+      if (workspacePanel) { workspacePanel.style.display = 'block'; }
+      // Add back button at top
+      if (!document.getElementById('ws-back-btn')) {
+        const backBtn = document.createElement('div');
+        backBtn.id = 'ws-back-btn';
+        backBtn.innerHTML = '<div style="display:flex;align-items:center;padding:8px 16px;background:#252536;border-bottom:1px solid #333;cursor:pointer;color:#7c7cff;font-size:14px;"><span style="margin-right:8px;">←</span> 返回聊天 <span style="margin-left:auto;font-size:12px;color:#aaa;">📁 工作台</span></div>';
+        backBtn.onclick = () => switchTab('chat');
+        workspacePanel.insertBefore(backBtn, workspacePanel.firstChild);
+      }
+      if (!workspaceManager) {
+        workspaceManager = new WorkspaceManager();
+        workspaceManager.init();
+      }
+    } else {
+      // Show chat, hide workspace
+      if (appMain) { appMain.style.display = ''; appMain.classList.remove('hidden'); }
+      if (appHeader) { appHeader.style.display = ''; appHeader.classList.remove('hidden'); }
+      if (workspacePanel) { workspacePanel.style.display = 'none'; }
+    }
+  }
+
+  // Handle [[path]] links in chat messages
+  const _origAppendMsg = window.appendMessage;
+  // Hook into message display to render file links
+  document.addEventListener('DOMContentLoaded', () => {
+    // Observe chat messages for [[path]] patterns
+    const chatArea = document.querySelector('.messages') || document.querySelector('#messages');
+    if (chatArea) {
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach(m => {
+          m.addedNodes.forEach(node => {
+            if (node.nodeType === 1) {
+              const html = node.innerHTML;
+              if (html && html.includes('[[')) {
+                node.innerHTML = WorkspaceManager.renderFileLinks(html);
+              }
+            }
+          });
+        });
+      });
+      observer.observe(chatArea, { childList: true });
+    }
+  });
 </script>
 </body>
 </html>

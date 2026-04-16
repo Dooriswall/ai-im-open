@@ -10,6 +10,30 @@ let bindPatchApplied = false;
 
 async function getDb() {
   if (db) {
+    if (!bindPatchApplied) {
+      // 应用猴子补丁：清理undefined绑定参数
+      const originalPrepare = db.prepare;
+      db.prepare = function(sql) {
+        const stmt = originalPrepare.call(this, sql);
+        const originalBind = stmt.bind;
+        stmt.bind = function(params) {
+          // 将undefined转换为null
+          const cleaned = params.map(p => (p === undefined ? null : p));
+          return originalBind.call(this, cleaned);
+        };
+        return stmt;
+      };
+      // 也包装db.run
+      const originalRun = db.run;
+      db.run = function(sql, params) {
+        if (params) {
+          const cleaned = params.map(p => (p === undefined ? null : p));
+          return originalRun.call(this, sql, cleaned);
+        }
+        return originalRun.call(this, sql);
+      };
+      bindPatchApplied = true;
+    }
     return db;
   }
   
@@ -107,7 +131,7 @@ async function getDb() {
     };
     return stmt;
   };
-  // 包装db.run以处理undefined参数（sql.js兼容性补丁，仅在init时应用一次）
+  // 也包装db.run
   const originalRun = db.run;
   db.run = function(sql, params) {
     if (params) {
@@ -116,6 +140,9 @@ async function getDb() {
     }
     return originalRun.call(this, sql);
   };
+  bindPatchApplied = true;
+
+  return db;
 }
 
 function saveToFile() {
@@ -129,11 +156,6 @@ function saveToFile() {
 setInterval(() => {
   saveToFile();
 }, 10000);
-
-// Escape special LIKE characters to prevent injection
-function escapeLike(str) {
-  return str.replace(/\\/g, '\\\\\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
-}
 
 module.exports = {
   async init() {
@@ -453,10 +475,10 @@ module.exports = {
     let sql, params;
     if (channel) {
       sql = 'SELECT * FROM messages WHERE channel = ? AND content LIKE ? ORDER BY id DESC LIMIT ?';
-      params = [channel, '%' + escapeLike(query) + '%', safeLimit];
+      params = [channel, '%' + query + '%', safeLimit];
     } else {
       sql = 'SELECT * FROM messages WHERE content LIKE ? ORDER BY id DESC LIMIT ?';
-      params = ['%' + escapeLike(query) + '%', safeLimit];
+      params = ['%' + query + '%', safeLimit];
     }
     const stmt = db.prepare(sql);
     stmt.bind(params);

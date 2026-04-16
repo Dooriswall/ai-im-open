@@ -1,0 +1,285 @@
+/**
+ * DMManager - 虾群IM私聊管理器
+ * 管理私聊会话的创建、消息发送和状态维护
+ * 
+ * 使用方式：
+ * const dmManager = new DMManager(ws, currentUserId);
+ * 
+ * 功能：
+ * 1. 打开私聊会话 (openDM)
+ * 2. 发送私聊消息 (sendDM)
+ * 3. 加载私聊历史 (loadDMHistory)
+ * 4. 管理私聊会话状态
+ */
+
+class DMManager {
+  /**
+   * 构造函数
+   * @param {WebSocket} ws - WebSocket连接实例
+   * @param {string} currentUserId - 当前用户ID
+   */
+  constructor(ws, currentUserId) {
+    this.ws = ws;
+    this.currentUserId = currentUserId;
+    this.activeDM = null; // 当前激活的私聊会话 {userId, channel}
+    this.dmSessions = new Map(); // 缓存私聊会话状态
+  }
+
+  /**
+   * 打开与目标用户的私聊会话
+   * @param {string} targetUserId - 目标用户ID
+   * @returns {string} DM频道名称 (格式: dm:sortedUser1:sortedUser2)
+   */
+  openDM(targetUserId) {
+    if (!targetUserId || targetUserId === this.currentUserId) {
+      console.error('无效的目标用户ID');
+      return null;
+    }
+
+    // 按字母顺序排序用户ID，确保频道名称一致
+    const participants = [this.currentUserId, targetUserId].sort();
+    const channel = `dm:${participants[0]}:${participants[1]}`;
+    
+    // 更新当前激活的私聊会话
+    this.activeDM = {
+      userId: targetUserId,
+      channel: channel
+    };
+
+    // 缓存会话状态
+    this.dmSessions.set(targetUserId, {
+      channel,
+      lastOpened: Date.now(),
+      unreadCount: 0
+    });
+
+    console.log(`打开私聊会话: ${this.currentUserId} ↔ ${targetUserId}, 频道: ${channel}`);
+    return channel;
+  }
+
+  /**
+   * 发送私聊消息
+   * @param {string} targetUserId - 目标用户ID
+   * @param {string} content - 消息内容
+   * @returns {boolean} 发送是否成功
+   */
+  sendDM(targetUserId, content) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket连接未就绪');
+      return false;
+    }
+
+    if (!targetUserId || !content || content.trim() === '') {
+      console.error('目标用户ID和消息内容不能为空');
+      return false;
+    }
+
+    // 如果当前没有该用户的私聊会话，先打开一个
+    if (!this.dmSessions.has(targetUserId)) {
+      this.openDM(targetUserId);
+    }
+
+    // 获取频道
+    const session = this.dmSessions.get(targetUserId);
+    const channel = session.channel;
+
+    // 构建发送消息
+    const message = {
+      type: 'send_message',
+      to: targetUserId,
+      content: content.trim()
+    };
+
+    try {
+      this.ws.send(JSON.stringify(message));
+      console.log(`发送私聊消息到 ${targetUserId}: ${content.substring(0, 50)}...`);
+      
+      // 更新会话时间
+      session.lastActivity = Date.now();
+      
+      return true;
+    } catch (error) {
+      console.error('发送私聊消息失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 切换到指定用户的私聊会话
+   * @param {string} targetUserId - 目标用户ID
+   */
+  switchToDM(targetUserId) {
+    if (!targetUserId) return;
+
+    // 如果还没有会话，先打开
+    if (!this.dmSessions.has(targetUserId)) {
+      this.openDM(targetUserId);
+    }
+
+    const session = this.dmSessions.get(targetUserId);
+    this.activeDM = {
+      userId: targetUserId,
+      channel: session.channel
+    };
+
+    // 重置未读计数
+    session.unreadCount = 0;
+    
+    console.log(`切换到私聊会话: ${targetUserId}`);
+    return session.channel;
+  }
+
+  /**
+   * 加载私聊历史消息
+   * @param {string} targetUserId - 目标用户ID
+   * @param {number} limit - 限制数量
+   * @returns {Promise<Array>} 历史消息数组
+   */
+  async loadDMHistory(targetUserId, limit = 50) {
+    if (!targetUserId) return [];
+
+    // 获取频道
+    const channel = this.getDMChannel(targetUserId);
+    if (!channel) return [];
+
+    try {
+      // 调用后端API获取历史消息
+      const token = localStorage.getItem("shrimp-token"); const response = await fetch(`/api/messages?channel=${encodeURIComponent(channel)}&limit=${limit}`, { headers: { "Authorization": `Bearer ${token}` } });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.messages || [];
+    } catch (error) {
+      console.error('加载私聊历史失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取与目标用户的私聊频道名称
+   * @param {string} targetUserId 
+   * @returns {string|null} 频道名称
+   */
+  getDMChannel(targetUserId) {
+    if (!targetUserId) return null;
+    
+    if (this.dmSessions.has(targetUserId)) {
+      return this.dmSessions.get(targetUserId).channel;
+    }
+    
+    // 如果还没有会话，计算频道名称
+    const participants = [this.currentUserId, targetUserId].sort();
+    return `dm:${participants[0]}:${participants[1]}`;
+  }
+
+  /**
+   * 处理收到的私聊消息
+   * @param {Object} message - 消息对象
+   * @returns {boolean} 是否是私聊消息
+   */
+  handleIncomingMessage(message) {
+    // 检查是否是私聊消息
+    if (message.type !== 'chat' || !message.data || !message.data.channel) {
+      return false;
+    }
+
+    const channel = message.data.channel;
+    if (!channel.startsWith('dm:')) {
+      return false;
+    }
+
+    // 解析频道获取参与者
+    const parts = channel.split(':');
+    if (parts.length < 3) return false;
+    
+    const user1 = parts[1];
+    const user2 = parts[2];
+    
+    // 确定消息发送者（不是当前用户的那个）
+    const sender = message.data.sender;
+    const isCurrentUser = sender === this.currentUserId;
+    const otherUserId = isCurrentUser ? 
+      (user1 === this.currentUserId ? user2 : user1) : sender;
+
+    // 如果消息不是来自当前激活的会话，增加未读计数
+    if (this.activeDM?.userId !== otherUserId) {
+      const session = this.dmSessions.get(otherUserId);
+      if (session) {
+        session.unreadCount = (session.unreadCount || 0) + 1;
+        session.lastActivity = Date.now();
+      } else {
+        // 创建新的会话记录
+        this.dmSessions.set(otherUserId, {
+          channel,
+          lastActivity: Date.now(),
+          unreadCount: 1
+        });
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * 获取所有私聊会话
+   * @returns {Array} 会话列表 [{userId, channel, lastActivity, unreadCount}]
+   */
+  getAllSessions() {
+    const sessions = [];
+    for (const [userId, session] of this.dmSessions.entries()) {
+      sessions.push({
+        userId,
+        channel: session.channel,
+        lastActivity: session.lastActivity || 0,
+        unreadCount: session.unreadCount || 0
+      });
+    }
+    return sessions;
+  }
+
+  /**
+   * 获取指定会话的未读消息数
+   * @param {string} targetUserId 
+   * @returns {number} 未读计数
+   */
+  getUnreadCount(targetUserId) {
+    const session = this.dmSessions.get(targetUserId);
+    return session ? (session.unreadCount || 0) : 0;
+  }
+
+  /**
+   * 清除指定会话的未读计数
+   * @param {string} targetUserId 
+   */
+  clearUnreadCount(targetUserId) {
+    const session = this.dmSessions.get(targetUserId);
+    if (session) {
+      session.unreadCount = 0;
+    }
+  }
+
+  /**
+   * 关闭私聊会话
+   * @param {string} targetUserId 
+   */
+  closeDM(targetUserId) {
+    if (this.dmSessions.has(targetUserId)) {
+      this.dmSessions.delete(targetUserId);
+      
+      // 如果关闭的是当前激活的会话，清空activeDM
+      if (this.activeDM?.userId === targetUserId) {
+        this.activeDM = null;
+      }
+      
+      console.log(`关闭私聊会话: ${targetUserId}`);
+    }
+  }
+}
+
+// 导出DMManager类
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = DMManager;
+}
+window.DMManager = DMManager;
