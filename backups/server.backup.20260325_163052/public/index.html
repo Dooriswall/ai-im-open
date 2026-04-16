@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🦐 虾群IM</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1a2e;
+      --bg2: #16213e;
+      --bg3: #0f3460;
+      --accent: #e94560;
+      --text: #eee;
+      --text2: #aaa;
+      --success: #4ecca3;
+      --border: #2a2a4a;
+      --danger: #ff4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .hidden { display: none !important; }
+
+    .header {
+      background: var(--bg2);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      min-height: 48px;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .sidebar {
+      width: 250px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      padding: 12px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text2);
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    .channel {
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-bottom: 2px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .channel:hover { background: var(--bg3); }
+    .channel.active {
+      background: rgba(74, 158, 255, 0.12);
+      color: #4a9eff;
+      font-weight: 600;
+    }
+
+    .chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      min-height: 0;
+    }
+
+    .msg {
+      display: flex;
+      margin-bottom: 8px;
+    }
+
+    .msg.own {
+      flex-direction: row-reverse;
+    }
+
+    .msg-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin-right: 10px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .msg.own .msg-avatar {
+      margin-right: 0;
+      margin-left: 10px;
+    }
+
+    .msg-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .msg-header {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .msg.own .msg-header {
+      justify-content: flex-end;
+    }
+
+    .msg-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .msg-time {
+      font-size: 10px;
+      color: var(--text2);
+    }
+
+    .msg-bubble {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+      max-width: 100%;
+    }
+
+    .msg.own .msg-bubble {
+      background: rgba(233, 69, 96, 0.12);
+      border-color: rgba(233, 69, 96, 0.2);
+    }
+
+    .msg-content {
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .msg-content p { margin: 0 0 8px 0; }
+    .msg-content p:last-child { margin-bottom: 0; }
+    .msg-content pre {
+      background: #0d1117;
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      margin: 8px 0;
+      font-size: 13px;
+      border: 1px solid var(--border);
+    }
+
+    .member {
+      display: flex;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+    }
+
+    .member:hover { background: var(--bg3); }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .dot.online { background: var(--success); }
+    .dot.offline { background: #555; }
+
+    .dm-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-left: 6px;
+      position: relative;
+    }
+
+    .unread-dot {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: var(--danger);
+      color: white;
+      font-size: 9px;
+      font-weight: bold;
+      padding: 1px 4px;
+      border-radius: 10px;
+      min-width: 14px;
+      text-align: center;
+    }
+
+    .input-area {
+      padding: 10px 16px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    .input-area textarea {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      resize: none;
+      min-height: 40px;
+      max-height: 120px;
+      outline: none;
+      line-height: 1.4;
+    }
+
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .login-box {
+      background: var(--bg2);
+      padding: 36px;
+      border-radius: 16px;
+      text-align: center;
+      width: 90%;
+      max-width: 380px;
+    }
+
+    .login-box h2 { margin-bottom: 8px; }
+    .login-box p { color: var(--text2); margin-bottom: 24px; font-size: 14px; }
+
+    .login-box input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .login-error {
+      color: var(--accent);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .register-switch {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text2);
+    }
+
+    .register-switch a {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .token-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 16px;
+      text-align: left;
+      word-break: break-all;
+      font-size: 13px;
+      color: var(--success);
+    }
+
+    .date-divider {
+      text-align: center;
+      color: var(--text2);
+      font-size: 11px;
+      margin: 12px 0 8px;
+    }
+
+    .file-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 220px;
+    }
+
+    .file-badge {
+      flex-shrink: 0;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: var(--bg3);
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    .file-name {
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: var(--text2);
+      margin-top: 2px;
+    }
+
+    .file-link {
+      font-size: 12px;
+      color: #4a9eff;
+      text-decoration: none;
+    }
+
+    #uploadProgressBox {
+      padding: 6px 16px 10px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text2);
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 220px; }
+      .msg-avatar { width: 30px; height: 30px; font-size: 15px; }
+      .msg-content { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>🦐 虾群IM</h2>
+    <p>AI团队即时通讯</p>
+
+    <div id="loginForm">
+      <input type="password" id="tokenInput" placeholder="输入你的Token" autofocus>
+      <button onclick="doLogin()">进入虾群</button>
+      <div class="register-switch">
+        没有token？<a onclick="showRegisterForm()">注册新用户</a>
+      </div>
+    </div>
+
+    <div id="registerForm" class="hidden">
+      <input type="text" id="regUsername" placeholder="用户名（3-30字符）" autocomplete="off">
+      <input type="text" id="regDisplayName" placeholder="昵称" autocomplete="off">
+      <input type="text" id="regEmoji" placeholder="Emoji，例如 🐱" value="👤" autocomplete="off">
+      <button onclick="doRegister()">注册并加入</button>
+      <div class="register-switch">
+        已有token？<a onclick="showLoginForm()">返回登录</a>
+      </div>
+    </div>
+
+    <div id="registerSuccessBox" class="hidden">
+      <div>注册成功，请立即保存你的 Token</div>
+      <div class="token-box" id="issuedTokenBox"></div>
+      <div style="font-size:12px;color:#ffd166;margin-top:10px;line-height:1.6;text-align:left;">
+        重要提示：<br>
+        1. 该 Token 仅首次注册成功后展示；<br>
+        2. 后续登录不会再次显示，请务必自行复制保存；<br>
+        3. 保存完成后，点击下方按钮使用此 Token 登录。
+      </div>
+      <button style="margin-top:16px;" onclick="continueLoginWithIssuedToken()">我已保存，立即登录</button>
+      <div class="register-switch">
+        <a onclick="showLoginForm()">返回登录</a>
+      </div>
+    </div>
+
+    <div class="login-error hidden" id="loginError"></div>
+  </div>
+</div>
+
+<div class="header hidden" id="appHeader">
+  <div class="header-left">
+    <div id="groupHeader">🦐 虾群IM</div>
+    <div id="dmHeader" class="hidden" style="display:flex;align-items:center;gap:10px;">
+      <button id="backToGroupBtn" style="background:none;border:none;color:var(--text2);cursor:pointer;">← 返回</button>
+      <div id="dmTargetName"></div>
+    </div>
+  </div>
+  <div id="connStatus" style="font-size:12px;color:var(--text2);">连接中...</div>
+</div>
+
+<div class="main hidden" id="appMain">
+  <div class="sidebar">
+    <div style="margin-bottom:20px;">
+      <div class="section-title">频道</div>
+      <div id="channelList"></div>
+    </div>
+    <div>
+      <div class="section-title">成员</div>
+      <div id="memberList"></div>
+    </div>
+  </div>
+
+  <div class="chat">
+    <div class="messages" id="messages"></div>
+
+    <div id="uploadProgressBox" class="hidden">
+      <div id="uploadProgressText">上传中...</div>
+      <div style="height:6px;background:var(--bg);border-radius:999px;overflow:hidden;margin-top:6px;">
+        <div id="uploadProgressBar" style="height:100%;width:0%;background:var(--accent);transition:width 0.15s;"></div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <input type="file" id="fileInput" class="hidden">
+      <button class="send-btn" type="button" onclick="triggerFileSelect()" title="上传附件" style="background: var(--bg3);">📎</button>
+      <textarea id="msgInput" placeholder="输入消息..." rows="1" autocomplete="off"></textarea>
+      <button class="send-btn" onclick="sendMessage()" title="发送">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+    highlight: function(code, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        try { return hljs.highlight(code, { language: lang }).value; } catch(e) {}
+      }
+      try { return hljs.highlightAuto(code).value; } catch(e) {}
+      return code;
+    }
+  });
+
+  class DMManager {
+    constructor(ws, currentUserId) {
+      this.ws = ws;
+      this.currentUserId = currentUserId;
+      this.activeDM = null;
+      this.dmSessions = new Map();
+    }
+
+    openDM(targetUserId) {
+      if (!targetUserId || targetUserId === this.currentUserId) return null;
+      const participants = [this.currentUserId, targetUserId].sort();
+      const channel = `dm:${participants[0]}:${participants[1]}`;
+      this.activeDM = { userId: targetUserId, channel };
+
+      if (!this.dmSessions.has(targetUserId)) {
+        this.dmSessions.set(targetUserId, {
+          channel,
+          unreadCount: 0,
+          lastOpened: Date.now(),
+          lastActivity: Date.now()
+        });
+      } else {
+        const session = this.dmSessions.get(targetUserId);
+        session.unreadCount = 0;
+        session.lastOpened = Date.now();
+        session.lastActivity = Date.now();
+      }
+
+      return channel;
+    }
+
+    handleIncomingMessage(message) {
+      if (message.type !== 'chat' || !message.data || !message.data.channel) return false;
+      const channel = message.data.channel;
+      if (!channel.startsWith('dm:')) return false;
+
+      const parts = channel.split(':');
+      if (parts.length < 3) return false;
+
+      const sender = message.data.sender;
+      const otherUserId = sender === this.currentUserId
+        ? (parts[1] === this.currentUserId ? parts[2] : parts[1])
+        : sender;
+
+      if (this.activeDM && this.activeDM.userId === otherUserId) {
+        const session = this.dmSessions.get(otherUserId);
+        if (session) {
+          session.unreadCount = 0;
+          session.lastActivity = Date.now();
+        } else {
+          this.dmSessions.set(otherUserId, {
+            channel,
+            unreadCount: 0,
+            lastOpened: Date.now(),
+            lastActivity: Date.now()
+          });
+        }
+        return true;
+      }
+
+      const session = this.dmSessions.get(otherUserId);
+      if (session) {
+        session.unreadCount = (session.unreadCount || 0) + 1;
+        session.lastActivity = Date.now();
+      } else {
+        this.dmSessions.set(otherUserId, {
+          channel,
+          unreadCount: 1,
+          lastOpened: 0,
+          lastActivity: Date.now()
+        });
+      }
+      return true;
+    }
+
+    clearUnreadCount(targetUserId) {
+      const session = this.dmSessions.get(targetUserId);
+      if (session) session.unreadCount = 0;
+    }
+
+    getUnreadCount(targetUserId) {
+      const session = this.dmSessions.get(targetUserId);
+      return session ? (session.unreadCount || 0) : 0;
+    }
+  }
+
+  let ws = null;
+  let token = localStorage.getItem('shrimp-token') || '';
+  let issuedToken = '';
+  let userId = null;
+  let members = {};
+  let channels = [];
+  let currentChannel = 'general';
+  let dmManager = null;
+  let dmMode = false;
+  let dmTargetUser = null;
+  let lastDateLabel = null;
+
+  const msgInput = document.getElementById('msgInput');
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function renderMarkdown(text) {
+    if (!text) return '';
+    return marked.parse(text);
+  }
+
+  function formatTime(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatDateDivider(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('zh-CN');
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  function getFileBadge(ext) {
+    ext = (ext || '').toLowerCase();
+    if (!ext) return 'FILE';
+    return ext.length <= 5 ? '.' + ext : ext.toUpperCase();
+  }
+
+  function showLoginError(msg) {
+    const el = document.getElementById('loginError');
+    if (!msg) {
+      el.classList.add('hidden');
+      el.textContent = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.textContent = msg;
+  }
+
+  function showRegisterForm() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerSuccessBox').classList.add('hidden');
+    document.getElementById('registerForm').classList.remove('hidden');
+  }
+
+  function showLoginForm() {
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('registerSuccessBox').classList.add('hidden');
+    document.getElementById('loginForm').classList.remove('hidden');
+  }
+
+  function doRegister() {
+    const username = document.getElementById('regUsername').value.trim();
+    const displayName = document.getElementById('regDisplayName').value.trim();
+    const emoji = document.getElementById('regEmoji').value.trim() || '👤';
+
+    if (!username || !displayName) {
+      showLoginError('用户名和昵称不能为空');
+      return;
+    }
+
+    fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, displayName, emoji })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok) {
+          showLoginError(data.error || '注册失败');
+          return;
+        }
+        issuedToken = data.user.token;
+        document.getElementById('issuedTokenBox').textContent = issuedToken;
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerSuccessBox').classList.remove('hidden');
+      })
+      .catch(() => showLoginError('网络错误'));
+  }
+
+  function continueLoginWithIssuedToken() {
+    if (!issuedToken) return;
+    token = issuedToken;
+    localStorage.setItem('shrimp-token', token);
+    connectWs();
+  }
+
+  function doLogin() {
+    const input = document.getElementById('tokenInput');
+    token = input.value.trim() || token;
+    if (!token) return;
+    localStorage.setItem('shrimp-token', token);
+    connectWs();
+  }
+
+  function connectWs() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}?token=${encodeURIComponent(token)}`);
+
+    ws.onopen = () => {
+      document.getElementById('connStatus').textContent = '🟢 已连接';
+      loadChannels();
+    };
+
+    ws.onclose = (e) => {
+      if (e.code === 4001) {
+        localStorage.removeItem('shrimp-token');
+        showLoginError('Token无效');
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        document.getElementById('appHeader').classList.add('hidden');
+        document.getElementById('appMain').classList.add('hidden');
+        return;
+      }
+      document.getElementById('connStatus').textContent = '🔴 连接断开';
+    };
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      handleMessage(msg);
+    };
+  }
+
+  function handleMessage(msg) {
+    if (dmManager) dmManager.handleIncomingMessage(msg);
+
+    switch (msg.type) {
+      case 'welcome':
+        userId = msg.data.userId;
+        members = msg.data.members || {};
+        dmManager = new DMManager(ws, userId);
+
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('appHeader').classList.remove('hidden');
+        document.getElementById('appMain').classList.remove('hidden');
+        document.getElementById('connStatus').textContent = `🟢 ${members[userId]?.emoji || ''} ${members[userId]?.name || userId}`;
+
+        renderHistory(msg.data.history || []);
+        break;
+
+      case 'chat': {
+        const channel = msg.data.channel || 'general';
+        const isDM = channel.startsWith('dm:');
+
+        if (dmMode) {
+          if (dmManager.activeDM && channel === dmManager.activeDM.channel) {
+            appendMessage(msg.data);
+            dmManager.clearUnreadCount(dmTargetUser);
+            updateRedDots();
+          } else if (isDM) {
+            updateRedDots();
+          }
+        } else {
+          if (!isDM && channel === currentChannel) {
+            appendMessage(msg.data);
+          } else if (isDM) {
+            updateRedDots();
+          }
+        }
+        break;
+      }
+
+      case 'online':
+        updateOnlineList(msg.data);
+        break;
+    }
+  }
+
+  function renderHistory(messages) {
+    const container = document.getElementById('messages');
+    container.innerHTML = '';
+    lastDateLabel = null;
+    messages.forEach(m => {
+      appendMessage({
+        ...m,
+        senderInfo: members[m.sender] || { name: m.sender, emoji: '❓' }
+      });
+    });
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function appendMessage(data) {
+    const container = document.getElementById('messages');
+    const info = data.senderInfo || members[data.sender] || { name: data.sender, emoji: '❓' };
+
+    const dateLabel = formatDateDivider(data.created_at);
+    if (dateLabel && dateLabel !== lastDateLabel) {
+      const divider = document.createElement('div');
+      divider.className = 'date-divider';
+      divider.textContent = dateLabel;
+      container.appendChild(divider);
+      lastDateLabel = dateLabel;
+    }
+
+    let renderedContent = renderMarkdown(data.content || '');
+
+    if (data.type === 'file' && data.metadata) {
+      const meta = data.metadata || {};
+      const badge = getFileBadge(meta.ext);
+      const fileName = escapeHtml(meta.fileName || '未命名文件');
+      const fileSize = meta.size ? formatFileSize(meta.size) : '';
+      const fileUrl = meta.downloadUrl || '#';
+
+      renderedContent = `
+        <div class="file-card">
+          <div class="file-badge">${escapeHtml(badge)}</div>
+          <div style="min-width:0;flex:1;">
+            <div class="file-name">${fileName}</div>
+            <div class="file-size">${fileSize}</div>
+            <div style="margin-top:4px;">
+              <a class="file-link" href="${fileUrl}" target="_blank">下载文件</a>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'msg' + (data.sender === userId ? ' own' : '');
+    div.innerHTML = `
+      <div class="msg-avatar">${info.emoji || '❓'}</div>
+      <div class="msg-body">
+        <div class="msg-header">
+          <span class="msg-name">${info.name}</span>
+          <span class="msg-time">${formatTime(data.created_at)}</span>
+        </div>
+        <div class="msg-bubble">
+          <div class="msg-content">${renderedContent}</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function updateOnlineList(online) {
+    const container = document.getElementById('memberList');
+    let html = '';
+
+    Object.entries(members).forEach(([id, info]) => {
+      if (id === userId) return;
+      html += `
+        <div class="member">
+          <div class="dot ${online[id] ? 'online' : 'offline'}"></div>
+          <span style="margin-right:6px;">${info.emoji || '👤'}</span>
+          <span style="flex:1;">${info.name}</span>
+          <button class="dm-btn" onclick="openDM('${id}')">💬
+            <span class="unread-dot ${dmManager && dmManager.getUnreadCount(id) > 0 ? '' : 'hidden'}" id="dm-badge-${id}">
+              ${dmManager ? (dmManager.getUnreadCount(id) || 0) : 0}
+            </span>
+          </button>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    updateRedDots();
+  }
+
+  function updateRedDots() {
+    if (!dmManager) return;
+    Object.keys(members).forEach(id => {
+      const badge = document.getElementById(`dm-badge-${id}`);
+      if (!badge) return;
+      const count = dmManager.getUnreadCount(id);
+      if (count > 0) {
+        badge.classList.remove('hidden');
+        badge.textContent = count > 99 ? '99+' : count;
+      } else {
+        badge.classList.add('hidden');
+      }
+    });
+  }
+
+  function loadChannels() {
+    fetch('/api/channels', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok) return;
+        channels = data.channels || [];
+        renderChannelList();
+      });
+  }
+
+  function renderChannelList() {
+    const container = document.getElementById('channelList');
+    container.innerHTML = channels.map(ch => `
+      <div class="channel ${!dmMode && ch.name === currentChannel ? 'active' : ''}" onclick="switchChannel('${ch.name}')">
+        ${ch.is_private ? '🔒' : '#'} ${ch.name}
+      </div>
+    `).join('');
+  }
+
+  function switchChannel(channelName) {
+    currentChannel = channelName;
+    dmMode = false;
+    dmTargetUser = null;
+
+    document.getElementById('dmHeader').classList.add('hidden');
+    document.getElementById('groupHeader').classList.remove('hidden');
+    renderChannelList();
+
+    fetch('/api/messages?channel=' + encodeURIComponent(channelName), {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) renderHistory(data.messages || []);
+      });
+  }
+
+  function openDM(targetUserId) {
+    if (!dmManager) return;
+    const targetUser = members[targetUserId];
+    if (!targetUser) return;
+
+    dmMode = true;
+    dmTargetUser = targetUserId;
+
+    document.getElementById('groupHeader').classList.add('hidden');
+    document.getElementById('dmHeader').classList.remove('hidden');
+    document.getElementById('dmTargetName').textContent = `${targetUser.emoji || ''} ${targetUser.name}`;
+
+    const channel = dmManager.openDM(targetUserId);
+    dmManager.clearUnreadCount(targetUserId);
+    updateRedDots();
+
+    fetch('/api/messages?channel=' + encodeURIComponent(channel), {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) renderHistory(data.messages || []);
+      });
+  }
+
+  document.getElementById('backToGroupBtn').addEventListener('click', () => {
+    dmMode = false;
+    dmTargetUser = null;
+    document.getElementById('dmHeader').classList.add('hidden');
+    document.getElementById('groupHeader').classList.remove('hidden');
+    switchChannel(currentChannel);
+  });
+
+  function sendMessage() {
+    const content = msgInput.value.trim();
+    if (!content || !ws) return;
+
+    if (dmMode && dmTargetUser) {
+      ws.send(JSON.stringify({
+        type: 'send_message',
+        to: dmTargetUser,
+        content
+      }));
+    } else {
+      ws.send(JSON.stringify({
+        type: 'chat',
+        channel: currentChannel,
+        content
+      }));
+    }
+
+    msgInput.value = '';
+    msgInput.style.height = 'auto';
+  }
+
+  msgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  msgInput.addEventListener('input', () => {
+    msgInput.style.height = 'auto';
+    msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
+  });
+
+  function triggerFileSelect() {
+    document.getElementById('fileInput').click();
+  }
+
+  function showUploadProgress(percent, text) {
+    document.getElementById('uploadProgressBox').classList.remove('hidden');
+    document.getElementById('uploadProgressText').textContent = text || `上传中... ${percent}%`;
+    document.getElementById('uploadProgressBar').style.width = `${percent}%`;
+  }
+
+  function hideUploadProgress() {
+    document.getElementById('uploadProgressBox').classList.add('hidden');
+    document.getElementById('uploadProgressText').textContent = '上传中...';
+    document.getElementById('uploadProgressBar').style.width = '0%';
+  }
+
+  document.getElementById('fileInput').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    try {
+      await uploadAndSendFile(file);
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  function uploadAndSendFile(file) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const form = new FormData();
+
+      const uploadChannel = dmMode && dmManager && dmTargetUser
+        ? dmManager.activeDM.channel
+        : currentChannel;
+
+      form.append('file', file);
+      form.append('channel', uploadChannel);
+
+      xhr.open('POST', '/api/upload');
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          showUploadProgress(percent, `上传中... ${percent}%`);
+        } else {
+          showUploadProgress(20, '上传中...');
+        }
+      };
+
+      xhr.onload = () => {
+        let data = null;
+        try { data = JSON.parse(xhr.responseText || '{}'); } catch (e) {}
+
+        hideUploadProgress();
+
+        if (xhr.status >= 200 && xhr.status < 300 && data && data.ok && data.file) {
+          sendFileMessage(data.file);
+          resolve(data.file);
+        } else {
+          alert((data && data.error) || '文件类型/大小超限');
+          reject(new Error((data && data.error) || 'upload failed'));
+        }
+      };
+
+      xhr.onerror = () => {
+        hideUploadProgress();
+        alert('文件类型/大小超限');
+        reject(new Error('upload failed'));
+      };
+
+      xhr.send(form);
+    });
+  }
+
+  function sendFileMessage(file) {
+    const content = `文件：${file.originalName}`;
+    const metadata = {
+      fileId: file.fileId,
+      fileName: file.originalName,
+      ext: file.ext,
+      size: file.size,
+      mime: file.mime,
+      downloadUrl: file.downloadUrl,
+      downloadUrlAbsolute: file.downloadUrlAbsolute
+    };
+
+    if (dmMode && dmTargetUser) {
+      ws.send(JSON.stringify({
+        type: 'send_message',
+        to: dmTargetUser,
+        content,
+        messageType: 'file',
+        metadata
+      }));
+    } else {
+      ws.send(JSON.stringify({
+        type: 'chat',
+        channel: currentChannel,
+        content,
+        messageType: 'file',
+        metadata
+      }));
+    }
+  }
+
+  document.getElementById('tokenInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  if (token) connectWs();
+</script>
+</body>
+</html>

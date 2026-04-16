@@ -1,19 +1,7 @@
-# Node
-node_modules/
-npm-debug.log*
-
-# Python
-__pycache__/
-*.pyc
-.env
-venv/
-
-# Logs
-*.log
-
-# System
-.DS_Store
-.env
 node_modules/
 *.db
+*.db-journal
+*.log
+.env
 uploads/
+workspace/

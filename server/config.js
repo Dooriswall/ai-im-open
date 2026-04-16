@@ -1,39 +1,31 @@
 // 虾群IM 配置文件
-// 所有敏感信息通过环境变量配置，请复制 .env.example 为 .env 并填入实际值
 module.exports = {
   // 服务器端口
   port: process.env.SHRIMP_PORT || 8800,
 
-  // HTTPS端口
-  httpsPort: process.env.SHRIMP_HTTPS_PORT || 8443,
-
-  // 认证Token — 通过环境变量配置
+  // 认证Token — 部署时请修改！
   tokens: {
-    'boss':      process.env.TOKEN_BOSS      || '',
-    'chaoxia':   process.env.TOKEN_CHAOXIA   || '',
-    'huoshan':   process.env.TOKEN_HUOSHAN   || '',
-    'erxia':     process.env.TOKEN_ERXIA     || '',
-    'tuxia':     process.env.TOKEN_TUXIA     || '',
-    'maxia':     process.env.TOKEN_MAXIA     || '',
-    'auditor':   process.env.TOKEN_AUDITOR   || '',
-    'tiaocizhe': process.env.TOKEN_TIAOCIZHE || '',
+    'boss':      process.env.TOKEN_BOSS      || 'boss-secret-token-change-me',
+    'chaoxia':   process.env.TOKEN_CHAOXIA   || 'chaoxia-secret-token-change-me',
+    'huoshan':   process.env.TOKEN_HUOSHAN   || 'huoshan-secret-token-change-me',
+    'erxia':     process.env.TOKEN_ERXIA     || 'erxia-secret-token-change-me',
+    'tuxia':     process.env.TOKEN_TUXIA     || 'tuxia-secret-token-change-me',
+    'maxia':     process.env.TOKEN_MAXIA     || 'b836c2a1-7c9e-4e5a-8b1d-23f5e92160d5',
+    'auditor':   process.env.TOKEN_AUDITOR   || 'auditor-secret-a7c3e9f1-d4b2-4e8a-9c5d-6f1e3b7a2d84',
+    'tiaocizhe': process.env.TOKEN_TIAOCIZHE || 'tiaocizhe-secret-b3c4d5e6-f7g8-h9i0-j1k2-l3m4n5o6p7q8',
   },
 
-  // 成员信息（非敏感）
+  // 成员信息
   members: {
-    'boss':      { name: '老板',   role: 'boss' },
-    'chaoxia':   { name: '超虾',   role: 'ai', engine: 'Claude Opus 4', location: '德国法兰克福' },
-    'huoshan':   { name: '火山星人', role: 'ai', engine: 'DeepSeek', location: '腾讯云' },
-    'erxia':     { name: '二虾',   role: 'ai', engine: 'MiniMax', location: '腾讯云' },
-    'tuxia':     { name: '土虾',   role: 'ai', engine: 'Kimi', location: '老板办公室' },
-    'maxia':     { name: '麻虾',   role: 'ai', engine: 'Gemini 3 Flash', location: '香港谷歌云' },
-    'auditor':   { name: '审核员', role: 'ai', engine: 'Kimi K2.5', location: '老板办公室' },
-    'tiaocizhe': { name: '挑剔者', role: 'ai', engine: 'MiniMax M2.7', location: '老板办公室' },
+    'boss':    { name: '老板',     emoji: '👑', role: 'boss' },
+    'chaoxia': { name: '超虾',     emoji: '🦐', role: 'ai', engine: 'Claude Opus 4', location: '德国法兰克福' },
+    'huoshan': { name: '火山星人', emoji: '🌋', role: 'ai', engine: 'DeepSeek', location: '腾讯云' },
+    'erxia':   { name: '二虾',     emoji: '🦐', role: 'ai', engine: 'MiniMax', location: '腾讯云' },
+    'tuxia':   { name: '土虾',     emoji: '🦐', role: 'ai', engine: 'Kimi', location: '老板办公室' },
+    'maxia':   { name: '麻虾',     emoji: '🦐', role: 'ai', engine: 'Gemini 3 Flash', location: '香港谷歌云' },
+    'auditor': { name: '审核员', emoji: '🔍', role: 'ai', engine: 'Kimi K2.5', location: '老板办公室' },
+    'tiaocizhe': { name: '挑剔者', emoji: '👔', role: 'ai', engine: 'MiniMax M2.7', location: '老板办公室' },
   },
-
-  // Webhook配置
-  webhookTimeout: parseInt(process.env.WEBHOOK_TIMEOUT) || 5000,
-  webhookRetries: parseInt(process.env.WEBHOOK_RETRIES) || 2,
 
   // 消息历史加载条数
   historyLimit: 5000,
@@ -44,21 +36,15 @@ module.exports = {
   // 数据库路径
   dbPath: process.env.SHRIMP_DB || './shrimp-im.db',
 
-  // SSL证书路径（通过环境变量配置）
-  sslCertPath: process.env.SSL_CERT_PATH || '',
-  sslKeyPath: process.env.SSL_KEY_PATH || '',
-
-  // 对外访问基地址
+  // 对外访问基地址（用于 webhook 中返回附件绝对下载地址）
+  // 例如: https://im.example.com
   publicBaseUrl: process.env.PUBLIC_BASE_URL || '',
 
-  // 消息长度限制
-  maxMessageLength: parseInt(process.env.MAX_MESSAGE_LENGTH) || 10000,
-
-  // Webhook配置
+  // Webhook配置 — 新消息时通知各AI
   webhooks: {
     'chaoxia': {
-      url: process.env.WEBHOOK_CHAOXIA || '',
-      secret: process.env.WEBHOOK_SECRET_CHAOXIA || '',
+      url: '',
+      secret: '',
       excludeSelf: true,
     },
     'huoshan': {
@@ -79,5 +65,5 @@ module.exports = {
   },
 
   // 用户种子数据配置
-  seedUsers: process.env.SEED_USERS !== 'false',
+  seedUsers: false,
 };

@@ -1,0 +1,32 @@
+/* workspace.css v4 - 文件管理工作台样式 */
+.workspace-layout{display:flex;height:100%;width:100%}
+.workspace-sidebar{width:200px;min-width:200px;background:var(--sidebar-bg,#1e1e2e);border-right:1px solid var(--border-color,#333);overflow-y:auto;display:flex;flex-direction:column}
+.workspace-sidebar-header{padding:12px 16px;font-size:14px;font-weight:bold;color:var(--text-primary,#e0e0e0);border-bottom:1px solid var(--border-color,#333)}
+.project-list{flex:1;overflow-y:auto;padding:4px 0}
+.project-item{padding:8px 16px;cursor:pointer;color:var(--text-secondary,#aaa);font-size:13px;transition:background .15s}
+.project-item:hover{background:var(--hover-bg,#2a2a3e);color:var(--text-primary,#e0e0e0)}
+.workspace-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.workspace-breadcrumb{padding:8px 16px;font-size:13px;background:var(--header-bg,#252536);border-bottom:1px solid var(--border-color,#333);color:var(--text-secondary,#aaa)}
+.breadcrumb-item{cursor:pointer;color:var(--accent,#7c7cff)}.breadcrumb-item:hover{text-decoration:underline}
+.breadcrumb-sep{margin:0 4px;color:var(--text-muted,#666)}
+.workspace-toolbar{padding:6px 16px;display:flex;gap:8px;background:var(--header-bg,#252536);border-bottom:1px solid var(--border-color,#333)}
+.ws-btn{background:var(--btn-bg,#333);border:1px solid var(--border-color,#444);color:var(--text-primary,#e0e0e0);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:13px;transition:background .15s}
+.ws-btn:hover{background:var(--btn-hover,#444)}.ws-btn:disabled{opacity:.4;cursor:not-allowed}
+.workspace-content{flex:1;overflow-y:auto;padding:8px}
+.file-item{display:flex;align-items:center;padding:6px 12px;cursor:pointer;border-radius:4px;transition:background .15s;gap:10px}
+.file-item:hover{background:var(--hover-bg,#2a2a3e)}
+.file-icon{font-size:16px;flex-shrink:0}
+.file-name{flex:1;font-size:13px;color:var(--text-primary,#e0e0e0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-size{font-size:11px;color:var(--text-muted,#666);flex-shrink:0;min-width:50px;text-align:right}
+.file-modified{font-size:11px;color:var(--text-muted,#666);flex-shrink:0;min-width:120px;text-align:right}
+/* preview: iframe铺满且可滚动 */
+.workspace-preview{flex:1;overflow:hidden;padding:0;display:none;position:relative}
+.workspace-preview iframe{width:100%;height:100%;border:none;position:absolute;top:0;left:0}
+.tab-bar{display:flex;border-bottom:1px solid var(--border-color,#333);background:var(--header-bg,#252536)}
+.tab-item{padding:8px 20px;cursor:pointer;color:var(--text-secondary,#aaa);font-size:14px;border-bottom:2px solid transparent;transition:all .15s}
+.tab-item:hover{color:var(--text-primary,#e0e0e0)}
+.tab-item.active{color:var(--accent,#7c7cff);border-bottom-color:var(--accent,#7c7cff)}
+.file-link{color:var(--accent,#7c7cff);cursor:pointer;text-decoration:underline}
+.empty-hint{color:var(--text-muted,#666);text-align:center;padding:20px;font-size:13px}
+@media(max-width:768px){.workspace-sidebar{width:160px;min-width:160px}.file-modified{display:none}}
+@media(max-width:480px){.workspace-sidebar{width:120px;min-width:120px}.file-size{display:none}}
